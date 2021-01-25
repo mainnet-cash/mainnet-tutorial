@@ -1,0 +1,67 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <script src="https://cdn.mainnet.cash/mainnet-0.2.14.js"></script>
+    <style>
+      div {
+        margin: 7pt;
+      }
+    </style>
+  </head>
+  <body>
+    <div>Wallet balance: <span id="balance"></span></div>
+    <div>Wallet balance USD: <span id="balanceUSD"></span></div>
+    <div>Deposit address: <span id="depositAddr"></span></div>
+    <div>Deposit QR: <img id="depositQr"/></div>
+    <div>
+      <input type="button" id="getSats" value="Get testnet satoshi"></input>
+    </div>
+    <div>
+      Send to address
+      <input id="sendAddr"></input>
+      <input type="button" id="send" value="Send"></input>
+      <input type="button" id="sendMax" value="Send All Funds"></input>
+    </div>
+  </body>
+
+  <script>
+    async function run() {
+      const wallet = await TestNetWallet.newRandom();
+      // const wifWallet = await TestNetWallet.fromWIF(wif);
+      // const seedWallet = await TestNetWallet.fromSeed(seed, derivationPath)
+
+      const balance = await wallet.getBalance();
+      document.querySelector('#balance').innerText = `${balance.sat} testnet satoshi`;
+      document.querySelector('#balanceUSD').innerText = `$${balance.usd}`;
+
+      const addr = await wallet.getDepositAddress();
+      document.querySelector('#depositAddr').innerText = addr;
+
+      const qr = await wallet.getDepositQr();
+      document.querySelector('#depositQr').src = qr.src;
+
+      wallet.watchBalance((balance) => {
+        document.querySelector('#balance').innerText = `${balance.sat} testnet satoshi`;
+        document.querySelector('#balanceUSD').innerText = `$${balance.usd}`;
+      });
+
+      document.querySelector('#getSats').addEventListener("click", async () => {
+        await wallet.getTestnetSatoshis();
+      });
+
+      document.querySelector('#send').addEventListener("click", async () => {
+        const addr = document.querySelector('#sendAddr').value;
+        await wallet.send([{cashaddr: addr, value: 1000, unit: "sat"}]);
+        alert('Sent 1000 sats to ' + addr);
+      });
+
+      document.querySelector('#sendMax').addEventListener("click", async () => {
+        const addr = document.querySelector('#sendAddr').value;
+        await wallet.sendMax(addr);
+        alert('Sent all funds to ' + addr);
+      });
+    }
+
+    run();
+  </script>
+</html>
