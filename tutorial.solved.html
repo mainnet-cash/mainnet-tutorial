@@ -27,8 +27,6 @@
   <script>
     async function run() {
       const wallet = await TestNetWallet.newRandom();
-      // const wifWallet = await TestNetWallet.fromWIF(wif);
-      // const seedWallet = await TestNetWallet.fromSeed(seed, derivationPath)
 
       const balance = await wallet.getBalance();
       document.querySelector('#balance').innerText = `${balance.sat} testnet satoshi`;

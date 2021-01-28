@@ -1,0 +1,124 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <script src="http://rest-unstable.mainnet.cash/scripts/mainnet.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.1/css/bulma.min.css">
+    <style>
+      div {
+        margin: 7pt;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="columns">
+      <div class="column" style="margin: 30px">
+        <h1 class="title">Bitcoin cash</h1>
+        <div>Wallet balance: <span id="balance"></span></div>
+        <div>Wallet balance USD: <span id="balanceUSD"></span></div>
+        <div>Deposit address: <span id="depositAddr"></span></div>
+        <div>Deposit QR: <img id="depositQr"/></div>
+        <div>
+          <input type="button" id="getSats" value="Get testnet satoshi"></input>
+        </div>
+        <div>
+          Send to address
+          <input id="sendAddr"></input>
+          <input type="button" id="send" value="Send"></input>
+          <input type="button" id="sendMax" value="Send All Funds"></input>
+        </div>
+      </div>
+
+      <!-- slp -->
+
+      <div class="column" style="margin: 30px">
+        <h1 class="title">Simple ledger tokens</h1>
+        <div>Wallet balance: <span id="slpBalance"></span></div>
+        <div>Wallet balance USD: <span id="slpBalanceUSD"></span></div>
+        <div>Deposit address: <span id="slpDepositAddr"></span></div>
+        <div>Deposit QR: <img id="slpDepositQr"/></div>
+        <div>
+          <button type="button" id="getSlp">Get testnet slp tokens</button>
+        </div>
+        <div>
+          Send to slp address
+          <input id="slpSendAddr"></input>
+          <input type="button" id="slpSend" value="Send SLP"></input>
+          <input type="button" id="slpSendMax" value="Send All SLP Tokens"></input>
+        </div>
+      </div>
+    </div>
+  </body>
+
+  <script>
+    async function run() {
+      const wallet = await TestNetWallet.newRandom();
+
+      const balance = await wallet.getBalance();
+      document.querySelector('#balance').innerText = `${balance.sat} testnet satoshi`;
+      document.querySelector('#balanceUSD').innerText = `$${balance.usd}`;
+
+      const addr = await wallet.getDepositAddress();
+      document.querySelector('#depositAddr').innerText = addr;
+
+      const qr = await wallet.getDepositQr();
+      document.querySelector('#depositQr').src = qr.src;
+
+      wallet.watchBalance((balance) => {
+        document.querySelector('#balance').innerText = `${balance.sat} testnet satoshi`;
+        document.querySelector('#balanceUSD').innerText = `$${balance.usd}`;
+      });
+
+      document.querySelector('#getSats').addEventListener("click", async () => {
+        await wallet.getTestnetSatoshis();
+      });
+
+      document.querySelector('#send').addEventListener("click", async () => {
+        const addr = document.querySelector('#sendAddr').value;
+        await wallet.send([{cashaddr: addr, value: 1000, unit: "sat"}]);
+        alert('Sent 1000 sats to ' + addr);
+      });
+
+      document.querySelector('#sendMax').addEventListener("click", async () => {
+        const addr = document.querySelector('#sendAddr').value;
+        await wallet.sendMax(addr);
+        alert('Sent all funds to ' + addr);
+      });
+
+
+      const tokenId = "132731d90ac4c88a79d55eae2ad92709b415de886329e958cf35fdd81ba34c15";
+      const slpBalance = await wallet.slp.getBalance(tokenId);
+      document.querySelector('#slpBalance').innerText = `${slpBalance.value} ${slpBalance.ticker}`;
+      document.querySelector('#slpBalanceUSD').innerText = `???`;
+
+      const slpAddr = await wallet.slp.getDepositAddress();
+      document.querySelector('#slpDepositAddr').innerText = slpAddr;
+
+      const slpQr = await wallet.slp.getDepositQr();
+      document.querySelector('#slpDepositQr').src = slpQr.src;
+
+      wallet.slp.watchBalance((slpBalance) => {
+        console.log(slpBalance);
+        document.querySelector('#slpBalance').innerText = `${slpBalance.value} ${slpBalance.ticker}`;
+        document.querySelector('#slpBalanceUSD').innerText = `???`;
+      }, tokenId);
+
+      document.querySelector('#getSlp').addEventListener("click", async () => {
+        await wallet.getTestnetSlp(tokenId);
+      });
+
+      document.querySelector('#slpSend').addEventListener("click", async () => {
+        const addr = document.querySelector('#slpSendAddr').value;
+        await wallet.slp.send([{slpaddr: addr, value: 10, tokenId: tokenId}]);
+        alert('Sent 10 slp to ' + addr);
+      });
+
+      document.querySelector('#slpSendMax').addEventListener("click", async () => {
+        const addr = document.querySelector('#slpSendAddr').value;
+        await wallet.slp.sendMax(addr);
+        alert('Sent all slp funds to ' + addr);
+      });
+    }
+
+    run();
+  </script>
+</html>
