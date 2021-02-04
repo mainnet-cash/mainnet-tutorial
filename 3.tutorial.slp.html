@@ -106,8 +106,8 @@
 
       document.querySelector('#slpSend').addEventListener("click", async () => {
         const addr = document.querySelector('#slpSendAddr').value;
-        await wallet.slp.send([{slpaddr: addr, value: 10, tokenId: tokenId}]);
-        alert('Sent 10 slp to ' + addr);
+        await wallet.slp.send([{slpaddr: addr, value: 1, tokenId: tokenId}]);
+        alert('Sent 1 slp to ' + addr);
       });
 
       document.querySelector('#slpSendMax').addEventListener("click", async () => {

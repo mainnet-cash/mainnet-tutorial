@@ -1,7 +1,6 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <script src="http://rest-unstable.mainnet.cash/scripts/mainnet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
       div {
@@ -90,13 +89,13 @@
 
       document.querySelector('#send').addEventListener("click", async () => {
         const addr = document.querySelector('#sendAddr').value;
-        await wallet.send([{cashaddr: addr, value: 1000, unit: "sat"}]);
+        await axios.post("wallet/send", {walletId: walletId.walletId, to: [{cashaddr: addr, value: 1000, unit: "sat"}]});
         alert('Sent 1000 sats to ' + addr);
       });
 
       document.querySelector('#sendMax').addEventListener("click", async () => {
         const addr = document.querySelector('#sendAddr').value;
-        await wallet.sendMax(addr);
+        await axios.post("wallet/send_max", {walletId: walletId.walletId, cashaddr: addr});
         alert('Sent all funds to ' + addr);
       });
 
@@ -129,9 +128,8 @@
 
       document.querySelector('#slpSend').addEventListener("click", async () => {
         const addr = document.querySelector('#slpSendAddr').value;
-        console.log(addr, walletId, tokenId);
-        await axios.post("wallet/slp/send", {walletId: walletId.walletId, to: [{slpaddr: addr, value: 10, tokenId: tokenId}]});
-        alert('Sent 10 slp to ' + addr);
+        await axios.post("wallet/slp/send", {walletId: walletId.walletId, to: [{slpaddr: addr, value: 1, tokenId: tokenId}]});
+        alert('Sent 1 slp to ' + addr);
       });
 
       document.querySelector('#slpSendMax').addEventListener("click", async () => {
