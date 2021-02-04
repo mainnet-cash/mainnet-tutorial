@@ -2,7 +2,7 @@
   <head>
     <meta charset="utf-8">
     <script src="http://rest-unstable.mainnet.cash/scripts/mainnet.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.1/css/bulma.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
       div {
         margin: 7pt;
@@ -10,9 +10,9 @@
     </style>
   </head>
   <body>
-    <div class="columns">
-      <div class="column" style="margin: 30px">
-        <h1 class="title">Bitcoin cash</h1>
+    <div style="display: flex;  flex-direction: row;">
+      <div style="margin: 30px; flex: 50%;">
+        <h1>Bitcoin cash</h1>
         <div>Wallet balance: <span id="balance"></span></div>
         <div>Wallet balance USD: <span id="balanceUSD"></span></div>
         <div>Deposit address: <span id="depositAddr"></span></div>
@@ -30,8 +30,8 @@
 
       <!-- slp -->
 
-      <div class="column" style="margin: 30px">
-        <h1 class="title">Simple ledger tokens</h1>
+      <div style="margin: 30px; flex: 50%;">
+        <h1>Simple ledger tokens</h1>
         <div>Wallet balance: <span id="slpBalance"></span></div>
         <div>Wallet balance USD: <span id="slpBalanceUSD"></span></div>
         <div>Deposit address: <span id="slpDepositAddr"></span></div>
@@ -51,25 +51,41 @@
 
   <script>
     async function run() {
-      const wallet = await TestNetWallet.newRandom();
+      axios.defaults.baseURL = "https://rest-unstable.mainnet.cash/";
 
-      const balance = await wallet.getBalance();
+      const randomName = Math.random().toString(36).substring(6);
+
+      let wallet = (await axios.post("wallet/create", {
+        type: "wif",
+        network: "testnet",
+        name: randomName
+      })).data;
+
+      const walletId = { walletId: "wif:testnet:" + wallet.wif };
+
+      const balance = (await axios.post("wallet/balance", walletId)).data;
       document.querySelector('#balance').innerText = `${balance.sat} testnet satoshi`;
       document.querySelector('#balanceUSD').innerText = `$${balance.usd}`;
 
-      const addr = await wallet.getDepositAddress();
+      const addr = (await axios.post("wallet/deposit_address", walletId)).data.cashaddr;
       document.querySelector('#depositAddr').innerText = addr;
 
-      const qr = await wallet.getDepositQr();
+      const qr = (await axios.post("wallet/deposit_qr", walletId)).data;
       document.querySelector('#depositQr').src = qr.src;
 
-      wallet.watchBalance((balance) => {
+      const balanceSocket = new WebSocket("ws://rest-unstable.mainnet.cash/wallet");
+      balanceSocket.onopen = (event) => {
+        const request = {method: "watchBalance", data: {cashaddr: addr}};
+        balanceSocket.send(JSON.stringify(request));
+      };
+      balanceSocket.onmessage = (event) => {
+        const balance = JSON.parse(event.data);
         document.querySelector('#balance').innerText = `${balance.sat} testnet satoshi`;
         document.querySelector('#balanceUSD').innerText = `$${balance.usd}`;
-      });
+      };
 
       document.querySelector('#getSats').addEventListener("click", async () => {
-        await wallet.getTestnetSatoshis();
+        await axios.post("faucet/get_testnet_bch", { cashaddr: addr });
       });
 
       document.querySelector('#send').addEventListener("click", async () => {
@@ -86,35 +102,41 @@
 
 
       const tokenId = "132731d90ac4c88a79d55eae2ad92709b415de886329e958cf35fdd81ba34c15";
-      const slpBalance = await wallet.slp.getBalance(tokenId);
+      const slpBalance = (await axios.post("wallet/slp/balance", walletId)).data;
       document.querySelector('#slpBalance').innerText = `${slpBalance.value} ${slpBalance.ticker}`;
       document.querySelector('#slpBalanceUSD').innerText = `???`;
 
-      const slpAddr = await wallet.slp.getDepositAddress();
+      const slpAddr = (await axios.post("wallet/slp/deposit_address", walletId)).data.slpaddr;
       document.querySelector('#slpDepositAddr').innerText = slpAddr;
 
-      const slpQr = await wallet.slp.getDepositQr();
+      const slpQr = (await axios.post("wallet/slp/deposit_qr", walletId)).data;
       document.querySelector('#slpDepositQr').src = slpQr.src;
 
-      wallet.slp.watchBalance((slpBalance) => {
-        console.log(slpBalance);
-        document.querySelector('#slpBalance').innerText = `${slpBalance.value} ${slpBalance.ticker}`;
-        document.querySelector('#slpBalanceUSD').innerText = `???`;
-      }, tokenId);
+      const slpBalanceSocket = new WebSocket("ws://rest-unstable.mainnet.cash/wallet");
+      slpBalanceSocket.onopen = (event) => {
+        const request = {method: "slpWatchBalance", data: {slpaddr: slpAddr, tokenId: tokenId}};
+        slpBalanceSocket.send(JSON.stringify(request));
+      };
+      slpBalanceSocket.onmessage = (event) => {
+        const balance = JSON.parse(event.data);
+        document.querySelector('#balance').innerText = `${slpBalance.value} ${slpBalance.ticker}`;
+        document.querySelector('#balanceUSD').innerText = `???`;
+      };
 
       document.querySelector('#getSlp').addEventListener("click", async () => {
-        await wallet.getTestnetSlp(tokenId);
+        await axios.post("faucet/get_testnet_slp", walletId);
       });
 
       document.querySelector('#slpSend').addEventListener("click", async () => {
         const addr = document.querySelector('#slpSendAddr').value;
-        await wallet.slp.send([{slpaddr: addr, value: 10, tokenId: tokenId}]);
+        console.log(addr, walletId, tokenId);
+        await axios.post("wallet/slp/send", {walletId: walletId.walletId, to: [{slpaddr: addr, value: 10, tokenId: tokenId}]});
         alert('Sent 10 slp to ' + addr);
       });
 
       document.querySelector('#slpSendMax').addEventListener("click", async () => {
         const addr = document.querySelector('#slpSendAddr').value;
-        await wallet.slp.sendMax(addr);
+        await axios.post("wallet/slp/send_max", {walletId: walletId.walletId, slpaddr: addr, tokenId: tokenId});
         alert('Sent all slp funds to ' + addr);
       });
     }
