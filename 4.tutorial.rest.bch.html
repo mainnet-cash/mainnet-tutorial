@@ -73,7 +73,7 @@
       const qr = (await axios.post("wallet/deposit_qr", walletId)).data;
       document.querySelector('#depositQr').src = qr.src;
 
-      const balanceSocket = new WebSocket("ws://rest-unstable.mainnet.cash/wallet");
+      const balanceSocket = new WebSocket("wss://rest-unstable.mainnet.cash/wallet");
       balanceSocket.onopen = (event) => {
         const request = {method: "watchBalance", data: {cashaddr: addr}};
         balanceSocket.send(JSON.stringify(request));
@@ -112,19 +112,19 @@
       const slpQr = (await axios.post("wallet/slp/deposit_qr", walletId)).data;
       document.querySelector('#slpDepositQr').src = slpQr.src;
 
-      const slpBalanceSocket = new WebSocket("ws://rest-unstable.mainnet.cash/wallet");
+      const slpBalanceSocket = new WebSocket("wss://rest-unstable.mainnet.cash/wallet");
       slpBalanceSocket.onopen = (event) => {
         const request = {method: "slpWatchBalance", data: {slpaddr: slpAddr, tokenId: tokenId}};
         slpBalanceSocket.send(JSON.stringify(request));
       };
       slpBalanceSocket.onmessage = (event) => {
-        const balance = JSON.parse(event.data);
-        document.querySelector('#balance').innerText = `${slpBalance.value} ${slpBalance.ticker}`;
-        document.querySelector('#balanceUSD').innerText = `???`;
+        const slpBalance = JSON.parse(event.data);
+        document.querySelector('#slpBalance').innerText = `${slpBalance.value} ${slpBalance.ticker}`;
+        document.querySelector('#slpBalanceUSD').innerText = `???`;
       };
 
       document.querySelector('#getSlp').addEventListener("click", async () => {
-        await axios.post("faucet/get_testnet_slp", walletId);
+        await axios.post("faucet/get_testnet_slp", {slpaddr: slpAddr, tokenId: tokenId});
       });
 
       document.querySelector('#slpSend').addEventListener("click", async () => {
